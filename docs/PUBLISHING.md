@@ -1,67 +1,55 @@
-# Publishing libraries to MoPM
+# Publishing Mojo libraries with MoPM
 
-Each published library is one versioned `.mopm` file in the centralized GitHub repository.
+A publisher creates **one** `package.mopact` manifest and runs `mopm publish NAME`. There is no need to clone or manually edit `mopm-registry`.
 
-## 1. Prepare your Mojo library
-
-A sample layout:
+## Library directory
 
 ```text
-mylibrary/
-├── mojo.toml
-└── src/
-    └── mylibrary/
-        ├── __init__.mojo
-        └── helpers.mojo
-```
-
-The `[package]` section in `mojo.toml` supplies `name` and `version`:
-
-```toml
-[package]
-name = "mylibrary"
-version = "1.2.0"
-mojo = "1.2.0"
-```
-
-## 2. Publish
-
-Authenticate with GitHub once:
-
-```bash
-mopm login
-```
-
-Then, from your package directory:
-
-```bash
-mopm publish mylibrary
-```
-
-Or explicitly select a release version:
-
-```bash
-mopm publish mylibrary 1.2.1
-```
-
-MoPM finds and validates the library manifest and `__init__.mojo`, builds the `.mopm` ZIP-compatible archive, computes the SHA-256 checksum and submits a GitHub pull request. The CLI uses the GitHub API, with a server-side fork when needed; no local clone is necessary.
-
-The registry maintainer reviews the pull request and validation checks before merging. A package is not publicly available until the pull request is merged.
-
-## Archive specification
-
-```text
-mylibrary-1.2.0.mopm
-├── mopm.json
+greeter/
+├── package.mopact
 └── src/
     ├── __init__.mojo
-    └── helpers.mojo
+    └── greet.mojo
 ```
 
-`mopm.json` records the name, version, Mojo compatibility version, and exact dependencies. The centralized `index.json` records the version, artifact path, size, SHA-256 checksum and publisher.
+`package.mopact`:
 
-Precompiled `.mojoc` files are not distributed in this source-only format because their compiler compatibility is version-specific.
+```text
+library greeter 1.2.0
+for mojo 1.2.0
+from src
+about Simple greetings for Mojo
+license MIT
+```
 
-## Review and security
+See the [MoPact syntax specification](MoPact.md).
 
-Published versions cannot be replaced. The registry validates archive contents, metadata and checksums. Packages are untrusted code: consumers should review third-party packages and should not assume that a registry listing constitutes a security audit.
+## Commands
+
+Once the native publisher is compiled and verified:
+
+```sh
+mopm login                  # one-time GitHub authentication
+mopm publish greeter       # version 1.2.0 from package.mopact
+mopm publish greeter 1.2.1 # explicitly choose another release version
+```
+
+MoPM will package source into `greeter-1.2.0.mopm`, compute a SHA-256 hash and submit a registry pull request through the GitHub API without cloning the registry. Publishing does not become public until review and merge. New versions are immutable.
+
+## Archive content
+
+```text
+greeter-1.2.0.mopm
+├── package.mopact
+└── src/
+    ├── __init__.mojo
+    └── greet.mojo
+```
+
+Earlier archives using `mopm.json` remain immutable and readable. A new `package.mopact` archive validator and compatible installer are required before this new package format is accepted for production.
+
+The centralized [`index.json`](../index.json) is package discovery metadata, not something developers write by hand. No `.mojoc` compiler-version-specific binaries are distributed in this initial source-only package format.
+
+## Security
+
+Publishing will require package-owner identity, maintainer review and CI checks. Package archives must be verified for digest mismatch, symlinks, path traversal, malicious assets and unsafe extraction. A registry listing is not a safety endorsement.
