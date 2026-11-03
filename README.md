@@ -29,6 +29,73 @@ mopm help                     # View CLI help
 
 All options, variants, and subcommands are documented in the [full command reference below](#all-mopm-commands-and-subcommands).
 
+## Flags and options
+
+MoPM will support familiar **long flags** and selected **short aliases**. Flags marked here are part of the **planned CLI specification**, not a claim that they work in the current development build. Use `mopm COMMAND --help` for command-specific flags once implemented.
+
+### Global flags
+
+| Flag | Purpose |
+| --- | --- |
+| `-h, --help` | Show help for MoPM or a command |
+| `-V, --version` | Show the installed MoPM version |
+| `-v, --verbose` | Show detailed progress and diagnostics |
+| `-q, --quiet` | Suppress nonessential output |
+| `--no-color` | Disable terminal colours |
+| `--registry URL` | Override the central package registry for this command |
+| `--cache-dir PATH` | Override the local archive cache directory |
+
+Global `--registry` and `--cache-dir` apply only to commands that use those resources. `--json`, `--offline`, `--dry-run` and `--yes` are **command-specific**, not universal.
+
+### Command-specific flags
+
+| Command | Planned flags |
+| --- | --- |
+| `install` | `-U, --upgrade`, `--locked`, `--offline`, `--force-reinstall`, `--dry-run`, `--no-deps` |
+| `uninstall` | `-y, --yes`, `--dry-run` |
+| `inspect` | `--json`, `--tree` |
+| `list` | `--outdated`, `--json` |
+| `show` | `--json` |
+| `freeze` | `-o, --output FILE` |
+| `check` | `--json` |
+| `lock` | `--check`, `--update`, `--offline` |
+| `download` | `-d, --dest DIR`, `--offline`, `--with-deps` |
+| `wheel` / `pack` | `-o, --out-dir DIR`, `--check-only` |
+| `hash` | `--verify SHA256` |
+| `search` | `--limit N`, `--json` |
+| `index` | `--json` on `list`, `info` or `versions` |
+| `cache` | `--json` on `info` or `list`; `-y, --yes` on `purge` |
+| `config` | `--scope user\|project` on `get`, `set`, `unset` and `path`; `--json` on `list` |
+| `debug` | `-v, --verbose`, `--json` |
+| `publish` | `--dry-run` |
+| `init` | `--dir PATH` |
+| `update` | `--dry-run`, `--offline` |
+| `login` | `--device` |
+
+### Examples with flags
+
+```bash
+mopm install greeter@1.2.0 --locked     # Exact package, honour lockfile
+mopm install greeter -U --dry-run      # Preview an upgrade
+mopm install greeter --offline        # Use verified local cache only
+mopm uninstall greeter -y             # Remove without confirmation
+mopm list --outdated --json           # Machine-readable outdated list
+mopm inspect --tree                   # Show dependency tree
+mopm freeze -o dependencies.txt       # Save exact installed versions
+mopm lock --check                     # Verify lockfile, no changes
+mopm download greeter -d ./downloads  # Download without installing
+mopm wheel . --out-dir ./dist         # Build a .mopm archive
+mopm hash greeter-1.2.0.mopm --verify SHA256_DIGEST
+mopm search network --limit 10
+mopm index versions greeter --json
+mopm cache purge --yes
+mopm config set registry https://example.org/index.json --scope user
+mopm debug --verbose
+mopm publish greeter --dry-run        # Validate and build locally, do not submit
+```
+
+See [the full flag reference and semantics](docs/CLI-FLAGS.md), including validation, output and error rules.
+
 ## One-command package management
 
 ```bash
