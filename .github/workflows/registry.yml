@@ -18,9 +18,12 @@ jobs:
         run: |
           bash scripts/validate-index.sh
           bash scripts/validate-packages.sh
+          bash scripts/validate-archives.sh
           bash scripts/test-registry.sh
       - name: Prevent overwriting registered package versions
         if: github.event_name == 'pull_request'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: bash scripts/check-immutability.sh "$BASE_SHA"
+        run: |
+          bash scripts/check-immutability.sh "$BASE_SHA"
+          bash scripts/check-archive-immutability.sh "$BASE_SHA"
