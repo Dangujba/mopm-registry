@@ -1,29 +1,41 @@
 # MoPM Central Package Registry
 
-The official centralized package registry for the Mojo Package Manager (MoPM).
+The official centralized package registry for Mojo libraries. Packages are published as versioned **`.mopm`** archives, indexed in [`index.json`](index.json).
 
-## Install a package
+## Install a library
 
 ```bash
 mopm install greeter
 ```
 
-Install a specific version:
+To install an exact version:
 
 ```bash
-mopm install greeter@1.0.0
+mopm install greeter@1.0.1
 ```
 
-MoPM downloads the package from the central registry, resolves its dependencies, and records the selected versions automatically. No separate project setup or registry configuration is required for a first-time install.
+## Publish a library
 
-## Packages
+From your Mojo library's folder:
 
-Browse the [package index](index.tsv) and the [source packages](packages/).
+```bash
+mopm publish mylibrary
+```
 
-## Publish a package
+MoPM detects the version from `mojo.toml`. Alternatively specify one:
 
-See [Contributing](docs/CONTRIBUTING.md) for package submission and registration instructions. The registry uses immutable Git commit references and validates submissions through GitHub Actions.
+```bash
+mopm publish mylibrary 1.2.0
+```
 
-## About
+MoPM builds `dist/mylibrary-1.2.0.mopm` and submits the archive and metadata for review through GitHub. **No cloning or manual editing of this registry is required.** First-time publishers authenticate with `mopm login`.
 
-MoPM's centralized registry is hosted on GitHub and maintained at `Dangujba/mopm-registry`.
+The package is available for installation once its submission is reviewed and merged. Existing published versions are immutable.
+
+## Browse packages
+
+- [Central JSON index](index.json)
+- [Published .mopm archives](packages)
+- [Publishing guide](docs/PUBLISHING.md)
+
+The old `index.tsv` remains temporarily for compatibility with older MoPM clients. New packages are indexed in `index.json`.
