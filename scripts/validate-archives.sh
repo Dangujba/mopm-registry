@@ -13,11 +13,13 @@ while IFS=$'\t' read -r name version path digest size deps; do
   [[ "$size" -le 10485760 ]] || fail "archive too large"
   [[ "$(sha256sum "$path" | cut -d' ' -f1)" == "$digest" ]] || fail "SHA-256 mismatch for $path"
   unzip -tq "$path" >/dev/null || fail "corrupt archive"
+  if zipinfo -l "$path" | awk '$1 ~ /^l/ {bad=1} END {exit !bad}'; then fail "symlink in archive"; fi
+  zipinfo -l "$path" | awk '$1 ~ /^[?dlrwx-]/ && $4 ~ /^[0-9]+$/ {total+=$4} END {exit(total>10485760)}' || fail "excessive uncompressed size"
   while IFS= read -r entry; do
     [[ "$entry" != /* && "$entry" != *'..'* && "$entry" != *'\\'* ]] || fail "unsafe archive path"
     [[ "$entry" == mopm.json || "$entry" == src/* ]] || fail "unexpected archive path"
   done < <(unzip -Z1 "$path")
-  unzip -Z1 "$path" | grep -Fxq src/__init__.mojo || fail "missing __init__.mojo"
+  unzip -Z1 "$path" | grep -Fx src/__init__.mojo >/dev/null || fail "missing __init__.mojo"
   metadata="$(unzip -p "$path" mopm.json)"
   jq -e --arg n "$name" --arg v "$version" --argjson d "$deps" '.format=="mopm-v1" and .name==$n and .version==$v and .dependencies==$d' <<< "$metadata" >/dev/null || fail "metadata mismatch"
 done < <(jq -r '.packages|to_entries[]|.key as $n|.value.versions|to_entries[]|[$n,.key,.value.file,.value.sha256,(.value.size|tostring),(.value.dependencies|tojson)]|@tsv' index.json)
