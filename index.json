@@ -1,0 +1,18 @@
+{
+  "schema": 2,
+  "registry": "Dangujba/mopm-registry",
+  "packages": {
+    "greeter": {
+      "latest": "1.0.1",
+      "versions": {
+        "1.0.1": {
+          "file": "packages/greeter/1.0.1.mopm",
+          "sha256": "2a556d8103b37fbb8e2834ec39228e5e2b6ab07d15e37f47c69ccd121d7ea9ca",
+          "size": 576,
+          "dependencies": {},
+          "publisher": "Dangujba"
+        }
+      }
+    }
+  }
+}
