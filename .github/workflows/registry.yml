@@ -1,0 +1,26 @@
+name: Registry validation
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out full Git history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate registry index and source
+        run: |
+          bash scripts/validate-index.sh
+          bash scripts/validate-packages.sh
+          bash scripts/test-registry.sh
+      - name: Prevent overwriting registered package versions
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: bash scripts/check-immutability.sh "$BASE_SHA"
