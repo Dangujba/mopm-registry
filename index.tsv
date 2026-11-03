@@ -1,2 +1,3 @@
 # MoPM registry index v1: name|version|github-owner/repo|40-character-commit|subdirectory|dependencies
 # Package records are registered only AFTER their source files have been committed.
+greeter|1.0.0|Dangujba/mopm-registry|81031ae0842ad202b9df290e5235b48a3a4a50be|packages/greeter|-
