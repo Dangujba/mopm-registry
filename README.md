@@ -39,3 +39,7 @@ The package is available for installation once its submission is reviewed and me
 - [Publishing guide](docs/PUBLISHING.md)
 
 The old `index.tsv` remains temporarily for compatibility with older MoPM clients. New packages are indexed in `index.json`.
+
+## MoPact manifest format (proposal)
+
+For future `.mopm` releases, we are developing a new Mojo-friendly metadata format called [MoPact](docs/MoPact.md), using `package.mopact`. Existing published archives remain unchanged until the parser and installer are verified.
