@@ -2,6 +2,33 @@
 
 The official centralized registry for Mojo libraries. Packages are distributed as versioned **`.mopm`** archives and indexed by [`index.json`](index.json). Package publishers do not need to clone this repository.
 
+## Command quick reference
+
+MoPM will offer the following pip-style commands, plus publishing tools. **This is the planned command interface, not a claim that every command works in the current preview.**
+
+```bash
+mopm install greeter          # Install a library
+mopm uninstall greeter        # Remove a library
+mopm inspect                  # Inspect the dependency graph
+mopm list                     # List installed libraries
+mopm show greeter             # Show library details
+mopm freeze                   # Export installed versions
+mopm check                    # Check dependencies and integrity
+mopm lock                     # Generate the lockfile
+mopm download greeter         # Download without installing
+mopm wheel .                  # Build a .mopm archive
+mopm hash greeter-1.2.0.mopm  # Calculate package checksum
+mopm search greeter           # Search the registry
+mopm index versions greeter   # List published versions
+mopm cache info               # Inspect local cache
+mopm config list              # View configuration
+mopm debug                    # Diagnose MoPM
+mopm publish greeter          # Submit a library to the registry
+mopm help                     # View CLI help
+```
+
+All options, variants, and subcommands are documented in the [full command reference below](#all-mopm-commands-and-subcommands).
+
 ## One-command package management
 
 ```bash
