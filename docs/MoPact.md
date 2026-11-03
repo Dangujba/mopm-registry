@@ -1,45 +1,74 @@
-# MoPact: proposed Mojo Package Contract (v1)
+# MoPact v2: Plain-language Mojo library manifests
 
-**File:** `package.mopact` · **Purpose:** human-readable metadata inside future `.mopm` archives.
-
-MoPact is a new line-oriented package manifest format proposed for the MoPM toolchain. It is **not yet accepted by the current published CLI or registry validators**. Previously published `mopm.json` archives remain valid and immutable.
+**Filename:** `package.mopact`  
+**Distribution archive:** `name-version.mopm`  
+**Status:** Specification and Mojo parser source, pending compiler verification.
 
 ## Example
 
 ```text
-# A Mojo library
-package ~> greeting
-version ~> 1.2.0
-mojo ~> 1.2.0
-source ~> src
-about ~> A simple greeting library
-license ~> MIT
-need ~> json@1.0.0
-need ~> http@2.0.0
+# My Mojo package
+library greeter 1.2.0
+for mojo 1.2.0
+from src
+about Simple greetings for Mojo
+license MIT
+
+needs json 1.0.0
+needs http 2.0.0
 ```
 
-No braces, quotes, indentation rules, commas or TOML sections. Each non-comment line is a `key ~> value` relationship.
+MoPact uses a small, human-readable, line-based grammar rather than `~>`, braces, commas, quotes, YAML indentation or TOML sections.
 
-**Required (once):** `package`, `version`, `mojo`, `source`.
+| Statement | Meaning |
+| --- | --- |
+| `library NAME VERSION` | Identity, required once |
+| `for mojo VERSION` | Mojo compiler compatibility, required once |
+| `from PATH` | Relative source directory, required once |
+| `about TEXT` | Free-form description, optional once |
+| `license IDENTIFIER` | License identifier, optional once |
+| `needs NAME VERSION` | Exact dependency version, repeatable |
 
-**Optional (once):** `about`, `license`.
+Package names must be valid Mojo module identifiers. A version consists of exactly three nonnegative numeric components without leading zeros. The parser rejects duplicate directives, duplicate dependencies, self-dependencies, unknown keywords and path traversal. Only entire lines beginning with `#` after whitespace are comments.
 
-**Repeatable:** `need ~> name@MAJOR.MINOR.PATCH`.
+This particular grammar is designed for MoPM, although no guarantee is made that individual tokens or similar language constructs have never appeared elsewhere.
 
-Unknown keys, duplicate fields, invalid identifiers/versions, duplicate dependencies and unsafe paths must be rejected. A package's source is found relative to the manifest.
+## Planned user commands
 
-## Future `.mopm` package format
+```sh
+mopm install greeter
+mopm uninstall greeter
+mopm show greeter
+mopm inspect
+mopm list
+mopm freeze
+mopm check
+mopm lock
+mopm download greeter
+mopm wheel .
+mopm hash greeter-1.2.0.mopm
+mopm search greeter
+mopm index versions greeter
+mopm cache info
+mopm config list
+mopm debug
+mopm publish greeter
+```
+
+`wheel` builds a `.mopm` archive for Mojo; it **does not** build a Python wheel. See [MoPM command contract](MoPM-CLI-Commands.md).
+
+## Publishing
+
+Run `mopm publish greeter` to read `1.2.0` from the manifest. Run `mopm publish greeter 1.2.1` to select an explicit release version. The CLI should assemble the archive, hash it, authenticate and submit it for registry review without a local registry clone.
+
+Inside a new archive:
 
 ```text
-greeting-1.2.0.mopm
+greeter-1.2.0.mopm
 ├── package.mopact
 └── src/
     ├── __init__.mojo
     └── greet.mojo
 ```
 
-`mopm publish greeting` should read the version automatically from `package.mopact`, package the library and submit a review request using GitHub authentication. `mopm publish greeting 1.2.0` should also be supported. No registry cloning or runtime Bash scripts should be required.
-
-Registry discovery can still use the machine-readable `index.json`. `package.mopact` is author-facing metadata, not the central package index.
-
-This is a specification proposal, not a released or compiled tool. The sample Mojo parser and regression tests need compiler verification before migration.
+The centralized `index.json` remains internal registry discovery metadata; users do not edit it. Previously published `mopm.json` archives remain immutable and readable. These changes require a compatible installer and full native compile/test verification before release.
