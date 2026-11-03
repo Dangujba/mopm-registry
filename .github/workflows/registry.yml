@@ -9,21 +9,153 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out full Git history
+      - name: Check out complete history
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Validate registry index and source
-        run: |
-          bash scripts/validate-index.sh
-          bash scripts/validate-packages.sh
-          bash scripts/validate-archives.sh
-          bash scripts/test-registry.sh
-      - name: Prevent overwriting registered package versions
-        if: github.event_name == 'pull_request'
+      - name: Verify registry archives and immutable releases
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          bash scripts/check-immutability.sh "$BASE_SHA"
-          bash scripts/check-archive-immutability.sh "$BASE_SHA"
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path, PurePosixPath
+          import re
+          import stat
+          import subprocess
+          import zipfile
+
+          def fail(message):
+              raise SystemExit("MoPM registry validation failed: " + message)
+
+          NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")
+          VERSION = re.compile(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\Z")
+          HASH = re.compile(r"[a-f0-9]{64}\Z")
+          data = json.loads(Path("index.json").read_text(encoding="utf-8"))
+          if data.get("schema") != 2 or not isinstance(data.get("packages"), dict):
+              fail("unsupported index.json schema")
+
+          def check_mopact(raw, name, version, index_deps):
+              singles, deps = {}, {}
+              for number, rawline in enumerate(raw.splitlines(), 1):
+                  line = rawline.strip()
+                  if not line or line.startswith("#"):
+                      continue
+                  parts = line.split()
+                  key = parts[0]
+                  if key == "library" and len(parts) == 3:
+                      field, value = "library", (parts[1], parts[2])
+                  elif key == "for" and len(parts) == 3 and parts[1] == "mojo":
+                      field, value = "mojo", parts[2]
+                  elif key == "from" and len(parts) == 2:
+                      field, value = "from", parts[1]
+                  elif key == "needs" and len(parts) == 3:
+                      dep, ver = parts[1:]
+                      if not NAME.fullmatch(dep) or not VERSION.fullmatch(ver) or dep in deps:
+                          fail(f"{name}@{version}: invalid dependency at line {number}")
+                      deps[dep] = ver
+                      continue
+                  elif key in ("about", "license") and len(parts) >= 2:
+                      field, value = key, line[len(key):].strip()
+                  else:
+                      fail(f"{name}@{version}: invalid MoPact line {number}")
+                  if field in singles:
+                      fail(f"{name}@{version}: duplicate MoPact field {field}")
+                  singles[field] = value
+              if (singles.get("library") != (name, version)
+                  or singles.get("from") != "src"
+                  or not VERSION.fullmatch(singles.get("mojo", ""))
+                  or name in deps or deps != index_deps):
+                  fail(f"{name}@{version}: MoPact metadata mismatch")
+
+          artifacts = set()
+          for name, package in data["packages"].items():
+              if not NAME.fullmatch(name) or not isinstance(package, dict):
+                  fail("invalid package identity")
+              versions = package.get("versions")
+              if not isinstance(versions, dict) or not versions or package.get("latest") not in versions:
+                  fail(f"{name}: missing versions/latest")
+              for version, entry in versions.items():
+                  if not VERSION.fullmatch(version) or not isinstance(entry, dict):
+                      fail(f"{name}: invalid version")
+                  filename = f"packages/{name}/{version}.mopm"
+                  if filename in artifacts or entry.get("file") != filename:
+                      fail(f"{name}@{version}: invalid file path")
+                  artifacts.add(filename)
+                  digest, size, deps = entry.get("sha256"), entry.get("size"), entry.get("dependencies")
+                  if not isinstance(digest, str) or not HASH.fullmatch(digest):
+                      fail(f"{filename}: invalid SHA-256")
+                  if isinstance(size, bool) or not isinstance(size, int) or size <= 0 or size > 10485760:
+                      fail(f"{filename}: invalid compressed size")
+                  if not isinstance(deps, dict):
+                      fail(f"{filename}: invalid dependencies")
+                  for dep, ver in deps.items():
+                      if (not NAME.fullmatch(dep) or not isinstance(ver, str)
+                          or not VERSION.fullmatch(ver) or dep == name):
+                          fail(f"{filename}: invalid dependency")
+                  path = Path(filename)
+                  if not path.is_file() or path.stat().st_size != size:
+                      fail(f"{filename}: missing or size mismatch")
+                  if hashlib.sha256(path.read_bytes()).hexdigest() != digest:
+                      fail(f"{filename}: checksum mismatch")
+                  try:
+                      with zipfile.ZipFile(path) as archive:
+                          members = archive.infolist()
+                          names = [member.filename for member in members]
+                          if len(set(names)) != len(names) or "src/__init__.mojo" not in names:
+                              fail(f"{filename}: missing __init__.mojo or duplicate member")
+                          legacy, mopact = "mopm.json" in names, "package.mopact" in names
+                          if legacy == mopact:
+                              fail(f"{filename}: expected exactly one metadata file")
+                          total = 0
+                          for info in members:
+                              filename_in_zip = info.filename
+                              parts = PurePosixPath(filename_in_zip).parts
+                              if (not parts or filename_in_zip.startswith("/")
+                                  or "\\" in filename_in_zip or any(part in (".", "..") for part in parts)):
+                                  fail(f"{filename}: unsafe archive path {filename_in_zip}")
+                              if filename_in_zip not in ("mopm.json", "package.mopact") and not filename_in_zip.startswith("src/"):
+                                  fail(f"{filename}: unexpected archive member")
+                              kind = stat.S_IFMT((info.external_attr >> 16) & 0xffff)
+                              if kind not in (0, stat.S_IFREG, stat.S_IFDIR):
+                                  fail(f"{filename}: symlink/device disallowed")
+                              if filename_in_zip.endswith("/") and kind == stat.S_IFREG:
+                                  fail(f"{filename}: file masquerading as directory")
+                              total += info.file_size
+                              if total > 10485760:
+                                  fail(f"{filename}: excessive uncompressed size")
+                          if legacy:
+                              metadata = json.loads(archive.read("mopm.json"))
+                              if (metadata.get("format") != "mopm-v1"
+                                  or metadata.get("name") != name
+                                  or metadata.get("version") != version
+                                  or metadata.get("dependencies") != deps):
+                                  fail(f"{filename}: legacy metadata mismatch")
+                          else:
+                              check_mopact(archive.read("package.mopact").decode("utf-8"), name, version, deps)
+                  except (OSError, UnicodeDecodeError, zipfile.BadZipFile, json.JSONDecodeError) as exc:
+                      fail(f"{filename}: malformed ZIP: {exc}")
+
+          for name, package in data["packages"].items():
+              for version, entry in package["versions"].items():
+                  for dep, ver in entry["dependencies"].items():
+                      if ver not in data["packages"].get(dep, {}).get("versions", {}):
+                          fail(f"{name}@{version}: unknown dependency {dep}@{ver}")
+
+          base = os.environ.get("BASE_SHA", "").strip()
+          if base:
+              previous = subprocess.run(["git", "show", f"{base}:index.json"],
+                                        capture_output=True, text=True)
+              if previous.returncode != 0:
+                  fail("cannot read previous index.json")
+              old = json.loads(previous.stdout)
+              for name, package in old.get("packages", {}).items():
+                  for version, record in package.get("versions", {}).items():
+                      current = data["packages"].get(name, {}).get("versions", {}).get(version)
+                      if current != record:
+                          fail(f"published version was changed/removed: {name}@{version}")
+          print(f"MoPM registry validation PASS: {len(artifacts)} archives verified")
+          PY
