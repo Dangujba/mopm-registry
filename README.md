@@ -1,25 +1,29 @@
 # MoPM Central Package Registry
 
-The official centralized GitHub-hosted registry for the native Mojo Package Manager (MoPM).
+The official centralized package registry for the Mojo Package Manager (MoPM).
 
-Registry owner: `Dangujba`. Default branch: `main`.
+## Install a package
 
-The canonical package index is [`index.tsv`](index.tsv). Package sources live under `packages/`. Package versions are immutable and pinned to full Git commit SHAs. The registry's CI validates entries, dependencies and package source structure.
-
-## Installing a package (after MoPM CLI compilation)
-
-```sh
-mopm init myapp
-cd myapp
-mopm search greeter
-mopm add greeter@1.0.0
-mopm install --locked
+```bash
+mopm install greeter
 ```
 
-MoPM CLI compatibility and native compilation are **not yet verified**. The sample `greeter@1.0.0` package is registered in `index.tsv` at an immutable source commit. The native MoPM CLI is not yet compiler-tested.
+Install a specific version:
 
-## Contributing
+```bash
+mopm install greeter@1.0.0
+```
 
-Submit a pull request with a new package source in `packages/<name>/`, followed by a separate commit or pull request for the immutable index entry. See `docs/CONTRIBUTING.md` and `docs/ARCHITECTURE.md`.
+MoPM downloads the package from the central registry, resolves its dependencies, and records the selected versions automatically. No separate project setup or registry configuration is required for a first-time install.
 
-This registry is experimental. Only review and run code from packages you trust.
+## Packages
+
+Browse the [package index](index.tsv) and the [source packages](packages/).
+
+## Publish a package
+
+See [Contributing](docs/CONTRIBUTING.md) for package submission and registration instructions. The registry uses immutable Git commit references and validates submissions through GitHub Actions.
+
+## About
+
+MoPM's centralized registry is hosted on GitHub and maintained at `Dangujba/mopm-registry`.
