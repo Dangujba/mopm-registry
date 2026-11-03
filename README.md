@@ -42,4 +42,4 @@ The old `index.tsv` remains temporarily for compatibility with older MoPM client
 
 ## MoPact manifest format (proposal)
 
-For future `.mopm` releases, we are developing a new Mojo-friendly metadata format called [MoPact](docs/MoPact.md), using `package.mopact`. Existing published archives remain unchanged until the parser and installer are verified.
+For future `.mopm` releases, we're defining [MoPact v2](docs/MoPact.md), a simple language using statements like `library greeter 1.2.0` and `needs json 1.0.0`. See the [complete MoPM CLI command specification](docs/MoPM-CLI-Commands.md). Existing published archives remain unchanged.
