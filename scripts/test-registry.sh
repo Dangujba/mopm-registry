@@ -6,6 +6,8 @@ trap 'rm -rf "$testroot"' EXIT
 cp -a "$src/." "$testroot/"
 cd "$testroot"
 rm -rf .git
+# Start with an empty index so tests do not depend on live commit SHAs.
+sed -i '/^[^#[:space:]]/d' index.tsv
 git init -q -b main
 git config user.name 'MoPM CI Test'
 git config user.email 'ci@example.invalid'
@@ -13,9 +15,7 @@ git add .
 git commit -qm 'Commit sample source'
 bash scripts/validate-index.sh
 bash scripts/validate-packages.sh
-if ! grep -q '^greeter|1.0.0|' index.tsv; then
-  bash scripts/register-package.sh greeter 1.0.0 -
-fi
+bash scripts/register-package.sh greeter 1.0.0 -
 [[ $(grep -Ec '^greeter\|1\.0\.0\|' index.tsv) -eq 1 ]]
 if bash scripts/register-package.sh greeter 1.0.0 - >/dev/null 2>&1; then
   echo 'Duplicate registration incorrectly allowed' >&2; exit 1
