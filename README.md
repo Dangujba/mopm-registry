@@ -16,10 +16,10 @@ mopm add greeter@1.0.0
 mopm install --locked
 ```
 
-MoPM CLI compatibility and native compilation are **not yet verified**. The first registry package will be registered once its source commit exists and automated checks pass.
+MoPM CLI compatibility and native compilation are **not yet verified**. The sample `greeter@1.0.0` package is registered in `index.tsv` at an immutable source commit. The native MoPM CLI is not yet compiler-tested.
 
 ## Contributing
 
-Submit a pull request with a new package source in `packages/<name>/` and a separately committed immutable index entry. See `docs/CONTRIBUTING.md` and `docs/ARCHITECTURE.md`.
+Submit a pull request with a new package source in `packages/<name>/`, followed by a separate commit or pull request for the immutable index entry. See `docs/CONTRIBUTING.md` and `docs/ARCHITECTURE.md`.
 
 This registry is experimental. Only review and run code from packages you trust.
