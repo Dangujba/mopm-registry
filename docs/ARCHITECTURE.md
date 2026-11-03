@@ -1,9 +1,11 @@
-# Architecture
+# MoPM registry architecture
 
-MoPM uses one centralized, GitHub-hosted index (`index.tsv`) to discover packages. Each `name@version` entry identifies a source repository, full Git commit SHA, package subdirectory, and exact dependencies. Package source files currently live in this registry under `packages/<name>/`.
+The v2 centralized registry index is [`index.json`](../index.json). Each published library version is one immutable ZIP-format file with the `.mopm` extension, stored under `packages/<name>/<version>.mopm`.
 
-The client reads the index from GitHub, pins the source revision in `mopm.lock`, and installs sources into the project's vendor directory. No external registry database or server is required for v1.
+The index provides `schema=2`, package versions, latest release, artifact path, size, SHA-256 digest, exact dependencies and publisher. MoPM downloads the archive over HTTPS, verifies the digest and metadata, and installs Mojo source files.
 
-The initial protocol supports public GitHub repositories and exact numeric versions. The current validator only permits packages hosted in `Dangujba/mopm-registry`. Later revisions may accept external package-source repositories subject to publisher checks, trusted metadata and reproducible validation.
+Developers publish using `mopm publish NAME [VERSION]`. The native Mojo CLI packs the library from its manifest and sources. The GitHub transport adapter authenticates with the GitHub CLI, creates a branch in the registry (for the owner) or on a server-side fork (for other publishers), uploads the archive and updates the index through GitHub APIs, and opens a pull request. Publishers do not clone the registry.
 
-A Git commit pin provides an immutable source revision, not an independent digest, signature, malware scan or safety guarantee.
+Maintainers review and merge submissions. Automation checks archive validity, registered dependency references, and preservation of previously published version records.
+
+`index.tsv` and raw `packages/greeter/*.mojo` are retained temporarily for legacy MoPM clients. New source packages are distributed in `.mopm` archives.
