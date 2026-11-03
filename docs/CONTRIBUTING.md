@@ -1,9 +1,15 @@
-# Contributing packages
+# Contributing a Mojo library
 
-1. Choose a unique Mojo-module-safe package name using letters, digits and underscores, not beginning with a digit.
-2. Submit a pull request adding `packages/NAME/__init__.mojo`, any `.mojo` source files and preferably a README and license.
-3. After maintainers review and merge the source, identify its full commit SHA.
-4. Register `NAME VERSION DEPENDENCIES` with `scripts/register-package.sh` in a separate commit or pull request, then allow CI to validate it.
-5. Previously published `name@version` records cannot be deleted or modified. Publish a new version for any change.
+Package authors do not need to clone or edit the registry repository.
 
-Packages are untrusted third-party code. Registry listing is not a security endorsement. The registry initially hosts sources directly and supports only exact `MAJOR.MINOR.PATCH` versions.
+From the library directory, run:
+
+```bash
+mopm publish mylibrary
+```
+
+The version comes from `[package].version` in `mojo.toml`. To override it for the submitted release, run `mopm publish mylibrary 1.2.0`.
+
+The CLI packages the library into a `.mopm` archive and submits a pull request automatically. First-time publishers run `mopm login` once to authenticate with GitHub.
+
+Requirements: a unique Mojo package name, an exact semantic version, `__init__.mojo`, valid Mojo source files and exact versions for each declared package dependency. Published versions are immutable. Maintainers review each submission and the automated archive/index checks before approval.
